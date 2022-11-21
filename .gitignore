@@ -1,0 +1,9 @@
+# Development environment
+.vscode/
+venv/
+data/
+
+# Build artifacts
+build/
+__pycache__/
+*.pyc

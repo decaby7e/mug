@@ -1,0 +1,4 @@
+- [ ] Add build process for cups-pdf
+- [ ] Fix issue w/ cups-pdf not printing
+- [ ] Continue conversion of pkipplib (urllib2->3)
+- [ ] Determine page count by generating PDF and counting pages from PDF? (replacement for `pkpgcounter`)
