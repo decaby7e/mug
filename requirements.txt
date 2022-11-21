@@ -1,0 +1,8 @@
+pkipplib==0.7
+urllib3==1.26
+toml==0.10.2
+typer==0.6.1
+sqlalchemy==1.4.42
+pdfrw==0.4
+wheel==0.38.4
+sqlalchemy_serializer==1.4.1
