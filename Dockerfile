@@ -25,6 +25,12 @@ RUN apt-get update \
 && apt-get clean \
 && rm -rf /var/lib/apt/lists/*
 
+# Pre-install Python packages
+COPY requirements.txt /tmp/requirements.txt
+
+RUN pip3 install -r /tmp/requirements.txt &&\
+    rm /tmp/requirements.txt
+
 # Add user and disable sudo password checking
 RUN useradd \
   --groups=sudo,lp,lpadmin \
@@ -34,6 +40,10 @@ RUN useradd \
   --password=$(mkpasswd print) \
   print \
 && sed -i '/%sudo[[:space:]]/ s/ALL[[:space:]]*$/NOPASSWD:ALL/' /etc/sudoers
+
+# Initialize mug environment (TODO: add config)
+RUN mkdir /var/lib/mug &&\
+    chown print:print /var/lib/mug
 
 # Default shell
 CMD ["/usr/sbin/cupsd", "-f"]

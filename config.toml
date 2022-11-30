@@ -1,3 +1,3 @@
 [sqlite]
-path = "/home/decaby7e/sync/school/classes/senior-project/mug/data/sqlite.db"
+path = "/var/lib/mug/sqlite.db"
 database = "mug"
