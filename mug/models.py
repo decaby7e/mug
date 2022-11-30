@@ -26,7 +26,7 @@ class Account(Base, SerializerMixin):
     gid = Column(Integer, nullable=True)
     status = Column(Enum(*ALLOWED_STATUS, name="allowed_status"), nullable=False)
     quota = Column(Integer)
-    pages_printed = Column(Integer)
+    pages_printed = Column(Integer, default=0, nullable=False)
     date_added = Column(DateTime(), default=datetime.now())
     date_modified = Column(DateTime())
 
