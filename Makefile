@@ -40,6 +40,10 @@ print:
 	podman cp data/test-paper.pdf mug:/tmp/
 	podman exec -it mug bash -c 'lp -d MugPDF -h localhost /tmp/test-paper.pdf'
 
+print_plain_pdf:
+	podman cp data/test-paper.pdf mug:/tmp/
+	podman exec -it mug bash -c 'lp -d Virtual_PDF_Printer -h localhost /tmp/test-paper.pdf'
+
 resume:
 	podman exec -it mug bash -c 'cupsenable MugPDF' 
 
