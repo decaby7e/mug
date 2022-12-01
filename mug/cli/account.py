@@ -96,6 +96,7 @@ def update(
     status: str = typer.Option(None, "--status"),
     quota: int = typer.Option(None, "--quota"),
     gid: int = typer.Option(None, "--gid"),
+    refresh: bool = typer.Option(False, "--refresh", help="Reset a user's page usage"),
 ):
     """Update an account with relevant attributes"""
 
@@ -114,6 +115,9 @@ def update(
 
     if gid is not None and existing.gid != gid:
         changes[Account.gid] = gid
+
+    if refresh :
+        changes[Account.pages_printed] = 0
 
     if not changes:
         print("No changes to be made, so not attempting update.")
