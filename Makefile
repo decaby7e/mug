@@ -13,6 +13,7 @@ run:
 	  -v ./data/spool-pdf:/var/spool/cups-pdf \
 	  -v ./config.toml:/etc/mug.toml \
 	  -v ./data/sqlite.db:/var/lib/mug/sqlite.db \
+	  --cap-add=CAP_SYS_PTRACE \
 	  local/mug
 
 rm:
