@@ -71,27 +71,26 @@ class CUPSBackend:
 
         self.count_pages()
         if self.page_count == 0:
-            self.return_no_content()
+            self.print_err("job data has no content that can be printed")
+            exit(0)  # TODO: Failure or success here??
 
         # Accounting work
 
         pages_allowed = self.get_pages_allowed(self.job_user)
 
         if self.page_count > pages_allowed:
-            self.return_quota_exceeded()
+            self.print_err(f"the job exceeds the users print quota ({self.job_user} has {pages_allowed} pages left and job was {self.page_count} pages)")
+            exit(0)  # TODO: Failure or success here??
 
-        # Pass job on to backend, all checks passed!
+        retcode = self.send_to_backend()
 
-        # Uh-oh: this would be for if we were a filter, but it seems like the
-        # way cupspykota implemented this was by acting as a backend and then
-        # manually invoking the next backend in the chain...
-        #
-        # with sys.stdout.buffer as stdout:
-        #     stdout.write(self.print_data)
+        if retcode == 0:
+            print(f"INFO: adding {self.page_count} pages to accounting for user {self.job_user}")
+            self.account_pages(self.job_user, self.page_count)
+        else:
+            print(f"ERROR: backend returned code {retcode} unexpectedly")
 
-        self.send_to_backend()
-
-        exit(0)
+        exit(retcode)
 
     """
     Accounting and job data processing
@@ -102,7 +101,7 @@ class CUPSBackend:
             raise BackendError(
                 "Cannot count number of pages because print data does not exist!"
             )
-        pdf = PdfReader(fdata=self.get_print_data())
+        pdf = PdfReader(fdata=self.get_pdf_from_cups())
         self.page_count = len(pdf.pages)
         return self.page_count
 
@@ -120,7 +119,7 @@ class CUPSBackend:
         )
 
         if not account_obj:
-            self.return_no_user()
+            self.print_err("user requesting job does not exist")
 
         # HACK: account_obj.pages_printed has been changed to default 0
         #       but might still be null in old implememtations
@@ -128,6 +127,22 @@ class CUPSBackend:
             account_obj.pages_printed = 0
 
         return account_obj.quota - account_obj.pages_printed
+
+    def account_pages(self, username, page_count):
+        account_obj: Optional[models.Account] = (
+            self.db_session.query(models.Account)
+            .filter(Account.username == username)
+            .first()
+        )
+
+        if not account_obj:
+            raise BackendError("Tried to account for account that does not exist!")
+
+        # TODO: Don't assume personal quota is whats being used
+        account_obj.pages_printed += page_count
+        print(f"INFO: {self.job_user} has now printed {account_obj.pages_printed} of their {account_obj.quota} allowed", file=sys.stderr)
+
+        self.db_session.commit()
 
     def send_to_backend(self):
         """
@@ -154,7 +169,7 @@ class CUPSBackend:
         # TODO : do something about job-billing option, in case it was overwritten as well...
         # TODO : do something about the job title : if we are printing a banner and the backend
         # TODO : uses the job's title to name an output file (cups-pdf:// for example), we're stuck !
-    
+
         self.become_root()
 
         pid = os.fork()
@@ -164,11 +179,9 @@ class CUPSBackend:
             if self.print_data is not None:
                 # Redirecting file handle to real backend's stdin
                 os.dup2(self.print_data.fileno(), 0)
+                pid = os.getpid()
 
             os.execve(originalbackend, arguments, os.environ)
-
-            # We shouldn't be here!
-            os._exit(-1)
 
         # In the parent of the fork
 
@@ -197,27 +210,28 @@ class CUPSBackend:
                 self.Reason = message
             else:
                 level = "info"
-            exit(status)
+            return status
         elif not killed:
             self.Reason = f"CUPS backend {originalbackend} died abnormally."
             self.print_info(self.Reason)
-            exit(-1)
+            return -1
         else:
             self.Reason = f"CUPS backend {originalbackend} was killed."
             self.print_info(self.Reason)
-            exit(1)
+            return 1
 
     """
     Environment initialization and preparation
     """
+
+    def get_pdf_from_cups(self) -> bytes:
+        return open(f"/var/spool/cups/d{str(self.job_id).zfill(5)}-001", "rb").read()
 
     def get_print_data_from_env(self) -> BinaryIO:
         """
         Determines whether to get job data from stdin or from the CUPS data directory
         See https://www.cups.org/doc/api-filter.html#OVERVIEW for more info
         """
-
-        data = bytes()
 
         fs_file = None
         if len(sys.argv) == 7:
@@ -227,6 +241,7 @@ class CUPSBackend:
 
         if fs_file:
             return open(fs_file, "rb")
+
         elif stdin_buffer:
             return stdin_buffer
 
@@ -239,7 +254,7 @@ class CUPSBackend:
         if self.print_data is None:
             raise BackendError("Cannot read print data because none exists!")
         data = self.print_data.read()
-        self.print_data.seek(0, 0)
+        # self.print_data.seek(0, 0)  # Doesnt work with stdin
         return data
 
     def get_job_info_from_env(self) -> dict:
@@ -250,21 +265,21 @@ class CUPSBackend:
 
         job = {}
 
-        job["APPLE_LANGUAGE"] = self.env["APPLE_LANGUAGE"]
-        job["CHARSET"] = self.env["CHARSET"]
-        job["CLASS"] = self.env["CLASS"]
-        job["CONTENT_TYPE"] = self.env["CONTENT_TYPE"]
-        job["CUPS_CACHEDIR"] = self.env["CUPS_CACHEDIR"]
-        job["CUPS_DATADIR"] = self.env["CUPS_DATADIR"]
-        job["CUPS_FILETYPE"] = self.env["CUPS_FILETYPE"]
-        job["CUPS_SERVERROOT"] = self.env["CUPS_SERVERROOT"]
-        job["DEVICE_URI"] = self.env["DEVICE_URI"]
-        job["FINAL_CONTENT_TYPE"] = self.env["FINAL_CONTENT_TYPE"]
-        job["LANG"] = self.env["LANG"]
-        job["PPD"] = self.env["PPD"]
-        job["PRINTER"] = self.env["PRINTER"]
-        job["RIP_CACHE"] = self.env["RIP_CACHE"]
-        job["TMPDIR"] = self.env["TMPDIR"]
+        job["APPLE_LANGUAGE"] = os.environ.get("APPLE_LANGUAGE", None)
+        job["CHARSET"] = os.environ.get("CHARSET", None)
+        job["CLASS"] = os.environ.get("CLASS", None)
+        job["CONTENT_TYPE"] = os.environ.get("CONTENT_TYPE", None)
+        job["CUPS_CACHEDIR"] = os.environ.get("CUPS_CACHEDIR", None)
+        job["CUPS_DATADIR"] = os.environ.get("CUPS_DATADIR", None)
+        job["CUPS_FILETYPE"] = os.environ.get("CUPS_FILETYPE", None)
+        job["CUPS_SERVERROOT"] = os.environ.get("CUPS_SERVERROOT", None)
+        job["DEVICE_URI"] = os.environ.get("DEVICE_URI", None)
+        job["FINAL_CONTENT_TYPE"] = os.environ.get("FINAL_CONTENT_TYPE", None)
+        job["LANG"] = os.environ.get("LANG", None)
+        job["PPD"] = os.environ.get("PPD", None)
+        job["PRINTER"] = os.environ.get("PRINTER", None)
+        job["RIP_CACHE"] = os.environ.get("RIP_CACHE", None)
+        job["TMPDIR"] = os.environ.get("TMPDIR", None)
 
         return job
 
@@ -290,17 +305,8 @@ class CUPSBackend:
     def print_info(self, msg):
         utils.stderr(f"INFO: {msg}")
 
-    def return_no_content(self):
-        utils.stderr("ERROR: job data has no content that can be printed")
-        exit(1)
-
-    def return_no_user(self):
-        utils.stderr("ERROR: user requesting job does not exist")
-        exit(1)
-
-    def return_quota_exceeded(self):
-        utils.stderr("ERROR: the job exceeds the users print quota")
-        exit(1)
+    def print_err(self, msg):
+        utils.stderr(f"ERROR: {msg}")
 
     def return_usage(self):
         utils.stderr(
