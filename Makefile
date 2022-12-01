@@ -30,7 +30,7 @@ install: pybuild
 	podman cp build mug:/tmp/
 	podman exec -it mug bash -c 'pip3 install --ignore-installed /tmp/build/*.whl'
 	podman exec -it mug ln -sf /usr/local/lib/python3.9/dist-packages/mug/backend.py /usr/lib/cups/backend/mug
-	podman exec -it mug chmod +x /usr/lib/cups/backend/mug
+	podman exec -it mug chmod 0500 /usr/lib/cups/backend/mug
 
 install_backend:
 	podman cp mug/backend.py mug:/usr/local/lib/python3.9/dist-packages/mug/backend.py
