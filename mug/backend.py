@@ -20,7 +20,7 @@ class BackendError(Exception):
     """Exceptions encountered during backend processing"""
 
 
-class CUPSFilter:
+class CUPSBackend:
     """
     The scheduler runs one or more [filters] to print any given job. The
     first filter reads from the print file and writes to the standard output, while
@@ -58,13 +58,8 @@ class CUPSFilter:
         self.copies_count = self.argv[4]
         self.job_options = self.argv[5]
 
-        self.print_data = print_data
-        if not self.print_data:
-            self.print_data = self.get_print_data_from_env()
-
-        self.env = cups_env
-        if not self.env:
-            self.env = self.get_job_info_from_env()
+        self.print_data = print_data if print_data else self.get_print_data_from_env()
+        self.env = cups_env if cups_env else self.get_job_info_from_env()
 
     def dispatch(self):
         if self.env["CONTENT_TYPE"] != "application/pdf":
@@ -139,14 +134,6 @@ class CUPSFilter:
         Emulate the same procedures CUPS uses to invoke backends for printing
         Derived from Pykota's CUPSBackend.runOriginalBackend
         """
-
-        # DEBUG
-        def write_debug_env(msg):
-            print(msg)
-            print(f"{os.geteuid()=}")
-            print(f"{originalbackend=}")
-            print(f"{arguments=}")
-            print(f"{os.environ=}")
 
         # socket://192.168.1.1:6000
         # mug://socket://192.168.1.1:6000
@@ -325,4 +312,4 @@ class CUPSFilter:
 if __name__ == "__main__":
     # Reads file from environment by default; design allows for mock data to be
     # injected
-    CUPSFilter(argv=sys.argv, cups_env=dict(os.environ)).dispatch()
+    CUPSBackend(argv=sys.argv, cups_env=dict(os.environ)).dispatch()
