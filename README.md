@@ -14,6 +14,6 @@ lpadmin -P /etc/cups/ppd/Virtual_PDF_Printer.ppd -d MugPDF
 ## TODO
 
 - [x] Add build process for cups-pdf
-- [ ] Fix issue w/ cups-pdf not printing
-- [ ] Continue conversion of pkipplib (urllib2->3)
-- [ ] Determine page count by generating PDF and counting pages from PDF? (replacement for `pkpgcounter`)
+- [x] Fix issue w/ cups-pdf not printing
+- [x] Continue conversion of pkipplib (urllib2->3)
+- [x] Determine page count by generating PDF and counting pages from PDF? (replacement for `pkpgcounter`)
