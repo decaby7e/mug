@@ -150,3 +150,5 @@ def delete(username: str):
     else:
         print(f"Account {username} could not be updated! See logs for more details.")
         exit(1)
+
+# TODO: validate command
