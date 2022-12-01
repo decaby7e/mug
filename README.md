@@ -33,6 +33,11 @@ build` step. CUPS will begin listening on port 631.
 
 `make install` will install the Mug software into the CUPS environment.
 
+> Ensure that you have installed the Python requirements necessary to build Mug
+  (located in requirements.txt). This may be made into its own containerized
+  build process in the future (TODO) but for now can be accomplished with a simple
+  virtual environment.
+
 ### Initializing the Mug Environment
 
 Before moving forward with printing from the CUPS server, we need to
