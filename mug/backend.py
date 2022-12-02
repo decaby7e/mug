@@ -224,6 +224,7 @@ class CUPSBackend:
     Environment initialization and preparation
     """
 
+    # TODO: replace with https://wiki.debian.org/CUPSFilter to process stdin
     def get_pdf_from_cups(self) -> bytes:
         return open(f"/var/spool/cups/d{str(self.job_id).zfill(5)}-001", "rb").read()
 
