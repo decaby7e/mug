@@ -93,3 +93,4 @@ cupsenable [PrinterName]
 - [x] Fix issue w/ cups-pdf not printing
 - [x] Continue conversion of pkipplib (urllib2->3)
 - [x] Determine page count by generating PDF and counting pages from PDF? (replacement for `pkpgcounter`)
+- [ ] Create stub backend (python script called mug) that invokes backend.py to prevent inconsistent file permissions
